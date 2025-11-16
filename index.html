@@ -217,15 +217,9 @@
     </div>
 
     <div>
-      <label for="metricSelect">Rodyti ir rikiuoti pagal:</label>
-      <select id="metricSelect" disabled></select>
-    </div>
-
-    <div>
-      <label for="sortDirectionSelect">Rikiavimo kryptis:</label>
-      <select id="sortDirectionSelect">
-        <option value="desc">Nuo didžiausio</option>
-        <option value="asc">Nuo mažiausio</option>
+      <label for="presetSelect">Filtruoti pagal pasirinkimą:</label>
+      <select id="presetSelect" disabled>
+        <!-- variantai bus užpildyti per JS -->
       </select>
     </div>
 
@@ -248,15 +242,14 @@
     const memberParty = {};   // iš members_parties.csv
 
     const partyFilterSelect = document.getElementById("partyFilter");
-    const metricSelect = document.getElementById("metricSelect");
-    const sortDirectionSelect = document.getElementById("sortDirectionSelect");
+    const presetSelect = document.getElementById("presetSelect");
     const searchInput = document.getElementById("searchInput");
     const statusEl = document.getElementById("status");
     const errorEl = document.getElementById("error");
     const cardsContainer = document.getElementById("cardsContainer");
     const currentMetricInfo = document.getElementById("currentMetricInfo");
 
-    let currentMetricKey = "dalyvavimo_proc";
+    let currentMetricKey = "uz";
     let currentSortDirection = "desc";
     let currentPartyFilter = "ALL";
     let currentSearchText = "";
@@ -340,6 +333,18 @@
         compute: m => m.uzA + m.uzB
       },
       {
+        key: "uzA",
+        label: "Papildomi A „už“",
+        describe: "Papildomi balsavimai A (komitetai ir kt.).",
+        compute: m => m.uzA
+      },
+      {
+        key: "uzB",
+        label: "Papildomi B „už“",
+        describe: "Papildomi balsavimai B (komitetai ir kt.).",
+        compute: m => m.uzB
+      },
+      {
         key: "dalyvavimo_proc",
         label: "Dalyvavimo procentas (pagrindiniai)",
         describe: "Procentas pagrindinių balsavimų, kuriuose Seimo narys dalyvavo (už + prieš + susilaikė).",
@@ -367,6 +372,43 @@
 
     function getMetricDefinition(key) {
       return metricDefinitions.find(m => m.key === key) || metricDefinitions[0];
+    }
+
+    // ---- Paruošti filtrų presetai ----
+    const presets = [
+      { value: "max_uz", label: "Daugiausiai „už“", metric: "uz", direction: "desc" },
+      { value: "min_uz", label: "Mažiausiai „už“", metric: "uz", direction: "asc" },
+
+      { value: "max_pries", label: "Daugiausiai „prieš“", metric: "pries", direction: "desc" },
+      { value: "min_pries", label: "Mažiausiai „prieš“", metric: "pries", direction: "asc" },
+
+      { value: "max_sus", label: "Daugiausiai susilaikė", metric: "susilaike", direction: "desc" },
+      { value: "min_sus", label: "Mažiausiai susilaikė", metric: "susilaike", direction: "asc" },
+
+      { value: "max_ned", label: "Daugiausiai nedalyvavo", metric: "nedalyvavo", direction: "desc" },
+      { value: "min_ned", label: "Mažiausiai nedalyvavo", metric: "nedalyvavo", direction: "asc" },
+
+      { value: "max_reg", label: "Daugiausiai registravosi", metric: "registravosi", direction: "desc" },
+      { value: "min_reg", label: "Mažiausiai registravosi", metric: "registravosi", direction: "asc" },
+
+      { value: "max_uzA", label: "Daugiausiai papildomi A „už“", metric: "uzA", direction: "desc" },
+      { value: "max_uzB", label: "Daugiausiai papildomi B „už“", metric: "uzB", direction: "desc" }
+    ];
+
+    function buildPresetSelectOptions() {
+      presetSelect.innerHTML = "";
+      presets.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.value;
+        opt.textContent = p.label;
+        presetSelect.appendChild(opt);
+      });
+      presetSelect.disabled = false;
+
+      // numatytasis – daugiausiai „už“
+      currentMetricKey = presets[0].metric;
+      currentSortDirection = presets[0].direction;
+      presetSelect.value = presets[0].value;
     }
 
     // ---- CSV nuskaitymas ----
@@ -404,7 +446,7 @@
       const idxNedalyvavo = findIndex(h => h.startsWith("nedalyv"), "Nedalyvavo");
       const idxPries = findIndex(h => h.startsWith("prieš") || h.startsWith("pries"), "Prieš");
 
-      // PATAISYTA: teisingas „Už“ stulpelio atpažinimas
+      // teisingas „Už“ stulpelis – be A/B
       const idxUz = findIndex(
         h => (h === "už" || h === "uz" || (h.startsWith("už") && !h.includes("a") && !h.includes("b"))),
         "Už"
@@ -537,18 +579,6 @@
 
       partyFilterSelect.disabled = false;
       currentPartyFilter = "ALL";
-    }
-
-    function buildMetricSelectOptions() {
-      metricSelect.innerHTML = "";
-      metricDefinitions.forEach(m => {
-        const opt = document.createElement("option");
-        opt.value = m.key;
-        opt.textContent = m.label;
-        metricSelect.appendChild(opt);
-      });
-      metricSelect.value = currentMetricKey;
-      metricSelect.disabled = false;
     }
 
     // ---- Atvaizdavimas ----
@@ -691,14 +721,14 @@
       renderCards();
     });
 
-    metricSelect.addEventListener("change", () => {
-      currentMetricKey = metricSelect.value;
-      renderCards();
-    });
-
-    sortDirectionSelect.addEventListener("change", () => {
-      currentSortDirection = sortDirectionSelect.value;
-      renderCards();
+    presetSelect.addEventListener("change", () => {
+      const val = presetSelect.value;
+      const preset = presets.find(p => p.value === val);
+      if (preset) {
+        currentMetricKey = preset.metric;
+        currentSortDirection = preset.direction;
+        renderCards();
+      }
     });
 
     searchInput.addEventListener("input", () => {
@@ -716,13 +746,10 @@
 
         augmentMembersWithParties();
         buildPartyFilterOptions();
-        buildMetricSelectOptions();
+        buildPresetSelectOptions();
 
         statusEl.textContent = "Duomenys įkelti. Galite filtruoti ir analizuoti Seimo narių balsavimus.";
         errorEl.style.display = "none";
-
-        currentMetricKey = "dalyvavimo_proc";
-        metricSelect.value = currentMetricKey;
 
         renderCards();
       } catch (err) {
