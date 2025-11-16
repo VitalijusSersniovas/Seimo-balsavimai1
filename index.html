@@ -120,10 +120,6 @@
       white-space: nowrap;
     }
 
-    .party-unknown {
-      background: #9e9e9e;
-    }
-
     .card-metric {
       margin-top: 2px;
     }
@@ -180,11 +176,6 @@
       white-space: nowrap;
     }
 
-    .sort-indicator {
-      font-size: 0.8rem;
-      color: #6b7280;
-    }
-
     @media (max-width: 768px) {
       body {
         margin: 10px;
@@ -227,9 +218,7 @@
 
     <div>
       <label for="metricSelect">Rodyti ir rikiuoti pagal:</label>
-      <select id="metricSelect" disabled>
-        <!-- užpildoma JS -->
-      </select>
+      <select id="metricSelect" disabled></select>
     </div>
 
     <div>
@@ -251,9 +240,7 @@
 
   <div id="currentMetricInfo" class="status"></div>
 
-  <div id="cardsContainer" class="cards-container">
-    <!-- kortelės bus pildomos čia -->
-  </div>
+  <div id="cardsContainer" class="cards-container"></div>
 
   <script>
     // ---- Globalūs kintamieji ----
@@ -274,7 +261,7 @@
     let currentPartyFilter = "ALL";
     let currentSearchText = "";
 
-    // ---- Partijų spalvos (kategorijos) ----
+    // ---- Partijų spalvos ----
     const categoryColors = {
       "Tėvynės sąjunga–LKD": "#43BBAE",
       "Liberalai": "#FDBB38",
@@ -314,36 +301,36 @@
       return categoryColors[category] || "#9e9e9e";
     }
 
-    // ---- Sudėtinių rodiklių aprašai ----
+    // ---- Sudėtiniai rodikliai ----
     const metricDefinitions = [
       {
         key: "uz",
         label: "Balsavo „už“ (pagrindiniai)",
-        describe: "Rodo, kiek kartų per metus Seimo narys balsavo „už“ pagrindiniuose balsavimuose.",
+        describe: "Kiek kartų per metus Seimo narys balsavo „už“ pagrindiniuose balsavimuose.",
         compute: m => m.uz
       },
       {
         key: "pries",
         label: "Balsavo „prieš“ (pagrindiniai)",
-        describe: "Rodo, kiek kartų per metus Seimo narys balsavo „prieš“ pagrindiniuose balsavimuose.",
+        describe: "Kiek kartų per metus Seimo narys balsavo „prieš“ pagrindiniuose balsavimuose.",
         compute: m => m.pries
       },
       {
         key: "susilaike",
         label: "Susilaikė (pagrindiniai)",
-        describe: "Rodo, kiek kartų Seimo narys susilaikė pagrindiniuose balsavimuose.",
+        describe: "Kiek kartų per metus Seimo narys susilaikė pagrindiniuose balsavimuose.",
         compute: m => m.susilaike
       },
       {
         key: "nedalyvavo",
         label: "Nedalyvavo (pagrindiniai)",
-        describe: "Nurodo, kiek kartų Seimo narys nedalyvavo pagrindiniuose balsavimuose.",
+        describe: "Kiek kartų per metus Seimo narys nedalyvavo pagrindiniuose balsavimuose.",
         compute: m => m.nedalyvavo
       },
       {
         key: "registravosi",
         label: "Registravosi (pagrindiniai)",
-        describe: "Kiek kartų Seimo narys registravosi balsavimuose (pagrindiniai).",
+        describe: "Kiek kartų Seimo narys registravosi balsavimuose.",
         compute: m => m.registravosi
       },
       {
@@ -382,7 +369,7 @@
       return metricDefinitions.find(m => m.key === key) || metricDefinitions[0];
     }
 
-    // ---- CSV nuskaitymas (metu balsavimas1.csv) ----
+    // ---- CSV nuskaitymas ----
     async function loadStats() {
       const response = await fetch("metu balsavimas1.csv");
       if (!response.ok) {
@@ -395,7 +382,6 @@
         throw new Error("„metu balsavimas1.csv“ faile per mažai eilučių.");
       }
 
-      // Randame eilutę, kurioje yra "Seimo nariai" – tai bus reali antraštė
       const headerIndex = lines.findIndex(l => l.toLowerCase().includes("seimo nariai"));
       if (headerIndex === -1) {
         throw new Error("Failo antraštėje nerastas stulpelis „Seimo nariai“.");
@@ -403,7 +389,6 @@
 
       const headerLine = lines[headerIndex];
       const delimiter = headerLine.includes(";") ? ";" : ",";
-
       const rawHeaders = headerLine.split(delimiter);
       const headers = rawHeaders.map(h => h.trim());
 
@@ -418,7 +403,13 @@
       const idxName = findIndex(h => h.includes("seimo nariai"), "Seimo nariai");
       const idxNedalyvavo = findIndex(h => h.startsWith("nedalyv"), "Nedalyvavo");
       const idxPries = findIndex(h => h.startsWith("prieš") || h.startsWith("pries"), "Prieš");
-      const idxUz = findIndex(h => h === "Už" || h === "Uz" || h.includes(" už"), "Už");
+
+      // PATAISYTA: teisingas „Už“ stulpelio atpažinimas
+      const idxUz = findIndex(
+        h => (h === "už" || h === "uz" || (h.startsWith("už") && !h.includes("a") && !h.includes("b"))),
+        "Už"
+      );
+
       const idxSusilaike = findIndex(h => h.startsWith("susil"), "Susilaikė");
       const idxRegistravosi = findIndex(h => h.startsWith("registr"), "Registravosi");
       const idxUzA = findIndex(h => h.includes("už a") || h.includes("uz a"), "Už A");
@@ -468,7 +459,7 @@
       }
     }
 
-    // ---- Partijos (members_parties.csv) ----
+    // ---- Partijos ----
     async function loadParties() {
       try {
         const response = await fetch("members_parties.csv");
@@ -521,7 +512,6 @@
       });
     }
 
-    // ---- Filtro pasirinkimai pagal partiją ----
     function buildPartyFilterOptions() {
       const set = new Set();
       members.forEach(m => {
@@ -549,7 +539,6 @@
       currentPartyFilter = "ALL";
     }
 
-    // ---- Metric select ----
     function buildMetricSelectOptions() {
       metricSelect.innerHTML = "";
       metricDefinitions.forEach(m => {
@@ -562,31 +551,22 @@
       metricSelect.disabled = false;
     }
 
-    // ---- Pagrindinė atvaizdavimo logika ----
+    // ---- Atvaizdavimas ----
     function renderCards() {
       cardsContainer.innerHTML = "";
 
       const metricDef = getMetricDefinition(currentMetricKey);
-      const metricLabel = metricDef.label;
-      const metricDescribe = metricDef.describe || "";
-
       currentMetricInfo.textContent =
-        "Rodoma ir rikiuojama pagal: " + metricLabel +
+        "Rodoma ir rikiuojama pagal: " + metricDef.label +
         (currentSortDirection === "desc" ? " (nuo didžiausio)" : " (nuo mažiausio)") +
-        (metricDescribe ? " – " + metricDescribe : "");
+        (metricDef.describe ? " – " + metricDef.describe : "");
 
-      // Sukuriame darbinį masyvą su apskaičiuotu rodikliu
-      let rows = members.map(m => {
-        const v = metricDef.compute(m);
-        return { member: m, value: v };
-      });
+      let rows = members.map(m => ({ member: m, value: metricDef.compute(m) }));
 
-      // Filtras pagal partiją
       if (currentPartyFilter !== "ALL") {
         rows = rows.filter(r => r.member.partyCategory === currentPartyFilter);
       }
 
-      // Filtras pagal paiešką
       const search = currentSearchText.trim().toLowerCase();
       if (search) {
         rows = rows.filter(r => r.member.name.toLowerCase().includes(search));
@@ -597,7 +577,6 @@
         return;
       }
 
-      // Randame maksimumą progress barui
       let maxValue = 0;
       rows.forEach(r => {
         if (r.value != null && Number.isFinite(r.value)) {
@@ -606,7 +585,6 @@
       });
       if (maxValue === 0) maxValue = 1;
 
-      // Rikiavimas
       rows.sort((a, b) => {
         const av = a.value == null ? -Infinity : a.value;
         const bv = b.value == null ? -Infinity : b.value;
@@ -621,7 +599,6 @@
         const card = document.createElement("div");
         card.className = "card";
 
-        // Header
         const header = document.createElement("div");
         header.className = "card-header";
 
@@ -631,21 +608,19 @@
 
         const partyEl = document.createElement("span");
         partyEl.className = "party-badge";
-        const category = m.partyCategory;
-        const color = getPartyColor(category);
+        const color = getPartyColor(m.partyCategory);
         partyEl.style.backgroundColor = color;
         partyEl.textContent = m.partyName || "Be frakcijos";
 
         header.appendChild(nameEl);
         header.appendChild(partyEl);
 
-        // Metric
         const metricBlock = document.createElement("div");
         metricBlock.className = "card-metric";
 
         const metricLabelEl = document.createElement("div");
         metricLabelEl.className = "metric-label";
-        metricLabelEl.textContent = metricLabel;
+        metricLabelEl.textContent = metricDef.label;
 
         const metricRow = document.createElement("div");
         metricRow.className = "metric-value-row";
@@ -686,7 +661,6 @@
         metricBlock.appendChild(metricRow);
         metricBlock.appendChild(barWrapper);
 
-        // Apatinės eilutės – statistika
         const row1 = document.createElement("div");
         row1.className = "card-stats-row";
         row1.innerHTML =
@@ -696,11 +670,11 @@
 
         const row2 = document.createElement("div");
         row2.className = "card-stats-row";
-        const papildomi = m.uzA + m.uzB;
         row2.innerHTML =
           `<div>Nedalyvavo: <b>${m.nedalyvavo.toLocaleString("lt-LT")}</b></div>` +
           `<div>Registravosi: <b>${m.registravosi.toLocaleString("lt-LT")}</b></div>` +
-          `<div>Papildomi (A+B): <b>${papildomi.toLocaleString("lt-LT")}</b></div>`;
+          `<div>Papildomi A „už“: <b>${m.uzA.toLocaleString("lt-LT")}</b></div>` +
+          `<div>Papildomi B „už“: <b>${m.uzB.toLocaleString("lt-LT")}</b></div>`;
 
         card.appendChild(header);
         card.appendChild(metricBlock);
@@ -747,7 +721,6 @@
         statusEl.textContent = "Duomenys įkelti. Galite filtruoti ir analizuoti Seimo narių balsavimus.";
         errorEl.style.display = "none";
 
-        // numatytasis rodiklis – dalyvavimo procentas
         currentMetricKey = "dalyvavimo_proc";
         metricSelect.value = currentMetricKey;
 
