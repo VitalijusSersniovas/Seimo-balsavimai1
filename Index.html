@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Metų balsavimų statistika</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 20px;
+      font-size: 1.05rem;
+      background: #f5f5f7;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 0.6rem;
+    }
+
+    .source-note {
+      margin: 6px 0 16px 0;
+      padding: 8px 12px;
+      border-left: 4px solid #555;
+      background: #f9f9f9;
+      font-size: 0.98rem;
+      line-height: 1.4;
+    }
+
+    .source-note b {
+      font-weight: 700;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .filters-row > div {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+
+    select, input[type="text"] {
+      min-width: 220px;
+      padding: 6px 10px;
+      font-size: 0.98rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+
+    input[type="text"] {
+      min-width: 260px;
+    }
+
+    .status {
+      margin-top: 6px;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      color: #555;
+    }
+
+    .error {
+      color: #b00020;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #111827;
+    }
+
+    .party-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .party-unknown {
+      background: #9e9e9e;
+    }
+
+    .card-metric {
+      margin-top: 2px;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .metric-value-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .metric-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .metric-extra {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .metric-bar-wrapper {
+      margin-top: 4px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 6px;
+    }
+
+    .metric-bar {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2563eb, #22c55e);
+      transition: width 0.2s ease-out;
+    }
+
+    .card-stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: #4b5563;
+    }
+
+    .card-stats-row div {
+      white-space: nowrap;
+    }
+
+    .sort-indicator {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        margin: 10px;
+        font-size: 1rem;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      .subtitle {
+        font-size: 0.95rem;
+      }
+      .filters-row > div {
+        width: 100%;
+      }
+      select, input[type="text"] {
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Metų balsavimų statistika</h1>
+  <div class="subtitle">
+    Metinė Seimo narių balsavimų, dalyvavimo ir papildomų balsavimų statistika.
+  </div>
+
+  <div class="source-note">
+    <b>Privaloma šaltinio nuoroda.</b><br />
+    Naudojant, cituojant ar dalinantis šioje lentelėje / įrankyje pateikta informacija, būtina aiškiai nurodyti šaltinį:<br />
+    <em>„Duomenys paimti iš Seimo nario Vitalijaus Šeršniovo parengto šaltinio.“</em>
+  </div>
+
+  <div class="filters-row">
+    <div>
+      <label for="partyFilter">Filtruoti pagal partiją / frakciją:</label>
+      <select id="partyFilter" disabled>
+        <option value="ALL">Visos partijos</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="metricSelect">Rodyti ir rikiuoti pagal:</label>
+      <select id="metricSelect" disabled>
+        <!-- užpildoma JS -->
+      </select>
+    </div>
+
+    <div>
+      <label for="sortDirectionSelect">Rikiavimo kryptis:</label>
+      <select id="sortDirectionSelect">
+        <option value="desc">Nuo didžiausio</option>
+        <option value="asc">Nuo mažiausio</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="searchInput">Paieška pagal vardą / pavardę:</label>
+      <input type="text" id="searchInput" placeholder="Pradėkite vesti Seimo nario pavardę..." />
+    </div>
+  </div>
+
+  <div id="status" class="status">Bandome įkelti duomenis iš „metu balsavimas1.csv“...</div>
+  <div id="error" class="error" style="display:none;"></div>
+
+  <div id="currentMetricInfo" class="status"></div>
+
+  <div id="cardsContainer" class="cards-container">
+    <!-- kortelės bus pildomos čia -->
+  </div>
+
+  <script>
+    // ---- Globalūs kintamieji ----
+    const members = [];       // { name, nedalyvavo, pries, uz, susilaike, registravosi, uzA, uzB, partyName, partyCategory }
+    const memberParty = {};   // iš members_parties.csv
+
+    const partyFilterSelect = document.getElementById("partyFilter");
+    const metricSelect = document.getElementById("metricSelect");
+    const sortDirectionSelect = document.getElementById("sortDirectionSelect");
+    const searchInput = document.getElementById("searchInput");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const cardsContainer = document.getElementById("cardsContainer");
+    const currentMetricInfo = document.getElementById("currentMetricInfo");
+
+    let currentMetricKey = "dalyvavimo_proc";
+    let currentSortDirection = "desc";
+    let currentPartyFilter = "ALL";
+    let currentSearchText = "";
+
+    // ---- Partijų spalvos (kategorijos) ----
+    const categoryColors = {
+      "Tėvynės sąjunga–LKD": "#43BBAE",
+      "Liberalai": "#FDBB38",
+      "Demokratai": "#3A5778",
+      "Socialdemokratai": "#FA0016",
+      "Lietuvos valstiečių, žaliųjų ir KŠS frakcija": "#95D05F",
+      "Mišri grupė": "#868A8D",
+      "Nemuno aušra": "#9A4418"
+    };
+
+    function getPartyCategory(partyName) {
+      if (!partyName) return "";
+      const p = partyName.toLowerCase();
+
+      if (p.startsWith("mišri grupė")) return "Mišri grupė";
+      if (p.includes("nemuno aušra")) return "Nemuno aušra";
+      if (p.includes("tėvynės sąjunga") || p.includes("tėvynės sajunga") || p.includes("ts-lkd")) {
+        return "Tėvynės sąjunga–LKD";
+      }
+      if (p.includes("liberalų sąjūdis") || p.includes("liberalai")) {
+        return "Liberalai";
+      }
+      if (p.includes("socialdemokrat")) {
+        return "Socialdemokratai";
+      }
+      if (p.includes("demokratų sąjunga") || p.includes("vardan lietuvos")) {
+        return "Demokratai";
+      }
+      if (p.includes("valstiečių") || p.includes("žaliųjų") || p.includes("žaliuju") || p.includes("kšs")) {
+        return "Lietuvos valstiečių, žaliųjų ir KŠS frakcija";
+      }
+      return partyName.trim();
+    }
+
+    function getPartyColor(category) {
+      if (!category) return "#9e9e9e";
+      return categoryColors[category] || "#9e9e9e";
+    }
+
+    // ---- Sudėtinių rodiklių aprašai ----
+    const metricDefinitions = [
+      {
+        key: "uz",
+        label: "Balsavo „už“ (pagrindiniai)",
+        describe: "Rodo, kiek kartų per metus Seimo narys balsavo „už“ pagrindiniuose balsavimuose.",
+        compute: m => m.uz
+      },
+      {
+        key: "pries",
+        label: "Balsavo „prieš“ (pagrindiniai)",
+        describe: "Rodo, kiek kartų per metus Seimo narys balsavo „prieš“ pagrindiniuose balsavimuose.",
+        compute: m => m.pries
+      },
+      {
+        key: "susilaike",
+        label: "Susilaikė (pagrindiniai)",
+        describe: "Rodo, kiek kartų Seimo narys susilaikė pagrindiniuose balsavimuose.",
+        compute: m => m.susilaike
+      },
+      {
+        key: "nedalyvavo",
+        label: "Nedalyvavo (pagrindiniai)",
+        describe: "Nurodo, kiek kartų Seimo narys nedalyvavo pagrindiniuose balsavimuose.",
+        compute: m => m.nedalyvavo
+      },
+      {
+        key: "registravosi",
+        label: "Registravosi (pagrindiniai)",
+        describe: "Kiek kartų Seimo narys registravosi balsavimuose (pagrindiniai).",
+        compute: m => m.registravosi
+      },
+      {
+        key: "papildomi",
+        label: "Papildomi balsavimai (Už A + Už B)",
+        describe: "Papildomi balsavimai dėl komitetų ir kitų procedūrų (Už A + Už B).",
+        compute: m => m.uzA + m.uzB
+      },
+      {
+        key: "dalyvavimo_proc",
+        label: "Dalyvavimo procentas (pagrindiniai)",
+        describe: "Procentas pagrindinių balsavimų, kuriuose Seimo narys dalyvavo (už + prieš + susilaikė).",
+        compute: m => {
+          const dalyvavo = m.uz + m.pries + m.susilaike;
+          const viso = dalyvavo + m.nedalyvavo;
+          if (!viso) return null;
+          return (dalyvavo / viso) * 100;
+        },
+        format: v => v == null ? "–" : v.toFixed(1).replace(".", ",") + " %"
+      },
+      {
+        key: "aktyvumo_indeksas",
+        label: "Aktyvumo indeksas (pagrindiniai)",
+        describe: "Apytikslis aktyvumo rodiklis: už + prieš + susilaikė + registravosi.",
+        compute: m => m.uz + m.pries + m.susilaike + m.registravosi
+      },
+      {
+        key: "grieztumo_indeksas",
+        label: "„Griežtumo“ indeksas (prieš – susilaikė)",
+        describe: "Kuo didesnis skaičius, tuo dažniau narys balsuoja „prieš“ nei susilaiko.",
+        compute: m => m.pries - m.susilaike
+      }
+    ];
+
+    function getMetricDefinition(key) {
+      return metricDefinitions.find(m => m.key === key) || metricDefinitions[0];
+    }
+
+    // ---- CSV nuskaitymas (metu balsavimas1.csv) ----
+    async function loadStats() {
+      const response = await fetch("metu balsavimas1.csv");
+      if (!response.ok) {
+        throw new Error("Nepavyko nuskaityti failo „metu balsavimas1.csv“. Patikrink, ar jis yra šalia HTML.");
+      }
+
+      const text = await response.text();
+      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+      if (lines.length < 2) {
+        throw new Error("„metu balsavimas1.csv“ faile per mažai eilučių.");
+      }
+
+      // Randame eilutę, kurioje yra "Seimo nariai" – tai bus reali antraštė
+      const headerIndex = lines.findIndex(l => l.toLowerCase().includes("seimo nariai"));
+      if (headerIndex === -1) {
+        throw new Error("Failo antraštėje nerastas stulpelis „Seimo nariai“.");
+      }
+
+      const headerLine = lines[headerIndex];
+      const delimiter = headerLine.includes(";") ? ";" : ",";
+
+      const rawHeaders = headerLine.split(delimiter);
+      const headers = rawHeaders.map(h => h.trim());
+
+      function findIndex(matchFn, fallbackName) {
+        const idx = headers.findIndex(h => matchFn(h.toLowerCase()));
+        if (idx === -1 && fallbackName) {
+          console.warn("Nerastas stulpelis:", fallbackName);
+        }
+        return idx;
+      }
+
+      const idxName = findIndex(h => h.includes("seimo nariai"), "Seimo nariai");
+      const idxNedalyvavo = findIndex(h => h.startsWith("nedalyv"), "Nedalyvavo");
+      const idxPries = findIndex(h => h.startsWith("prieš") || h.startsWith("pries"), "Prieš");
+      const idxUz = findIndex(h => h === "Už" || h === "Uz" || h.includes(" už"), "Už");
+      const idxSusilaike = findIndex(h => h.startsWith("susil"), "Susilaikė");
+      const idxRegistravosi = findIndex(h => h.startsWith("registr"), "Registravosi");
+      const idxUzA = findIndex(h => h.includes("už a") || h.includes("uz a"), "Už A");
+      const idxUzB = findIndex(h => h.includes("už b") || h.includes("uz b"), "Už B");
+
+      if (idxName === -1) {
+        throw new Error("Nerastas stulpelis „Seimo nariai“.");
+      }
+
+      for (let i = headerIndex + 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cols = line.split(delimiter);
+        if (cols.length <= idxName) continue;
+
+        const name = (cols[idxName] || "").trim();
+        if (!name) continue;
+
+        function getInt(idx) {
+          if (idx === -1 || idx >= cols.length) return 0;
+          const val = (cols[idx] || "").trim();
+          if (!val) return 0;
+          const num = Number(val.replace(",", "."));
+          return Number.isFinite(num) ? num : 0;
+        }
+
+        const nedalyvavo = getInt(idxNedalyvavo);
+        const pries = getInt(idxPries);
+        const uz = getInt(idxUz);
+        const susilaike = getInt(idxSusilaike);
+        const registravosi = getInt(idxRegistravosi);
+        const uzA = getInt(idxUzA);
+        const uzB = getInt(idxUzB);
+
+        members.push({
+          name,
+          nedalyvavo,
+          pries,
+          uz,
+          susilaike,
+          registravosi,
+          uzA,
+          uzB,
+          partyName: "",
+          partyCategory: ""
+        });
+      }
+    }
+
+    // ---- Partijos (members_parties.csv) ----
+    async function loadParties() {
+      try {
+        const response = await fetch("members_parties.csv");
+        if (!response.ok) {
+          console.warn("Nepavyko nuskaityti „members_parties.csv“. Partijos nebus priskirtos.");
+          return;
+        }
+
+        const text = await response.text();
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        if (lines.length < 2) {
+          console.warn("„members_parties.csv“ faile per mažai eilučių.");
+          return;
+        }
+
+        const headerLine = lines[0];
+        const delimiter = headerLine.includes(";") ? ";" : ",";
+        const headers = headerLine.split(delimiter).map(h => h.trim());
+
+        const idxMember = headers.indexOf("member");
+        const idxParty = headers.indexOf("party");
+
+        if (idxMember === -1 || idxParty === -1) {
+          console.warn("„members_parties.csv“ antraštėje turi būti stulpeliai: member, party.");
+          return;
+        }
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line.trim()) continue;
+          const cols = line.split(delimiter);
+          if (cols.length <= Math.max(idxMember, idxParty)) continue;
+
+          const member = cols[idxMember].trim();
+          const party = cols[idxParty].trim();
+          if (!member) continue;
+
+          memberParty[member] = party;
+        }
+      } catch (err) {
+        console.error("Klaida skaitant „members_parties.csv“:", err);
+      }
+    }
+
+    function augmentMembersWithParties() {
+      members.forEach(m => {
+        const partyName = memberParty[m.name] || "";
+        m.partyName = partyName;
+        m.partyCategory = getPartyCategory(partyName);
+      });
+    }
+
+    // ---- Filtro pasirinkimai pagal partiją ----
+    function buildPartyFilterOptions() {
+      const set = new Set();
+      members.forEach(m => {
+        if (m.partyCategory && m.partyCategory.trim()) {
+          set.add(m.partyCategory.trim());
+        }
+      });
+
+      const categories = Array.from(set).sort((a, b) => a.localeCompare(b, "lt"));
+      partyFilterSelect.innerHTML = "";
+
+      const allOpt = document.createElement("option");
+      allOpt.value = "ALL";
+      allOpt.textContent = "Visos partijos";
+      partyFilterSelect.appendChild(allOpt);
+
+      categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        partyFilterSelect.appendChild(opt);
+      });
+
+      partyFilterSelect.disabled = false;
+      currentPartyFilter = "ALL";
+    }
+
+    // ---- Metric select ----
+    function buildMetricSelectOptions() {
+      metricSelect.innerHTML = "";
+      metricDefinitions.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.key;
+        opt.textContent = m.label;
+        metricSelect.appendChild(opt);
+      });
+      metricSelect.value = currentMetricKey;
+      metricSelect.disabled = false;
+    }
+
+    // ---- Pagrindinė atvaizdavimo logika ----
+    function renderCards() {
+      cardsContainer.innerHTML = "";
+
+      const metricDef = getMetricDefinition(currentMetricKey);
+      const metricLabel = metricDef.label;
+      const metricDescribe = metricDef.describe || "";
+
+      currentMetricInfo.textContent =
+        "Rodoma ir rikiuojama pagal: " + metricLabel +
+        (currentSortDirection === "desc" ? " (nuo didžiausio)" : " (nuo mažiausio)") +
+        (metricDescribe ? " – " + metricDescribe : "");
+
+      // Sukuriame darbinį masyvą su apskaičiuotu rodikliu
+      let rows = members.map(m => {
+        const v = metricDef.compute(m);
+        return { member: m, value: v };
+      });
+
+      // Filtras pagal partiją
+      if (currentPartyFilter !== "ALL") {
+        rows = rows.filter(r => r.member.partyCategory === currentPartyFilter);
+      }
+
+      // Filtras pagal paiešką
+      const search = currentSearchText.trim().toLowerCase();
+      if (search) {
+        rows = rows.filter(r => r.member.name.toLowerCase().includes(search));
+      }
+
+      if (!rows.length) {
+        cardsContainer.innerHTML = "<div>Pagal pasirinktus filtrus rezultatų nėra.</div>";
+        return;
+      }
+
+      // Randame maksimumą progress barui
+      let maxValue = 0;
+      rows.forEach(r => {
+        if (r.value != null && Number.isFinite(r.value)) {
+          if (Math.abs(r.value) > maxValue) maxValue = Math.abs(r.value);
+        }
+      });
+      if (maxValue === 0) maxValue = 1;
+
+      // Rikiavimas
+      rows.sort((a, b) => {
+        const av = a.value == null ? -Infinity : a.value;
+        const bv = b.value == null ? -Infinity : b.value;
+        const dir = currentSortDirection === "asc" ? 1 : -1;
+        return (av - bv) * dir;
+      });
+
+      rows.forEach((row, index) => {
+        const m = row.member;
+        const v = row.value;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "card-header";
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "card-name";
+        nameEl.textContent = (index + 1) + ". " + m.name;
+
+        const partyEl = document.createElement("span");
+        partyEl.className = "party-badge";
+        const category = m.partyCategory;
+        const color = getPartyColor(category);
+        partyEl.style.backgroundColor = color;
+        partyEl.textContent = m.partyName || "Be frakcijos";
+
+        header.appendChild(nameEl);
+        header.appendChild(partyEl);
+
+        // Metric
+        const metricBlock = document.createElement("div");
+        metricBlock.className = "card-metric";
+
+        const metricLabelEl = document.createElement("div");
+        metricLabelEl.className = "metric-label";
+        metricLabelEl.textContent = metricLabel;
+
+        const metricRow = document.createElement("div");
+        metricRow.className = "metric-value-row";
+
+        const metricValueEl = document.createElement("div");
+        metricValueEl.className = "metric-value";
+
+        let displayValue;
+        if (metricDef.format) {
+          displayValue = metricDef.format(v);
+        } else {
+          displayValue = v == null ? "–" : v.toLocaleString("lt-LT");
+        }
+        metricValueEl.textContent = displayValue;
+
+        const metricExtraEl = document.createElement("div");
+        metricExtraEl.className = "metric-extra";
+
+        metricRow.appendChild(metricValueEl);
+        metricRow.appendChild(metricExtraEl);
+
+        const barWrapper = document.createElement("div");
+        barWrapper.className = "metric-bar-wrapper";
+
+        const bar = document.createElement("div");
+        bar.className = "metric-bar";
+
+        if (v == null || !Number.isFinite(v)) {
+          bar.style.width = "0%";
+        } else {
+          const ratio = Math.min(Math.abs(v) / maxValue, 1);
+          bar.style.width = (ratio * 100).toFixed(1) + "%";
+        }
+
+        barWrapper.appendChild(bar);
+
+        metricBlock.appendChild(metricLabelEl);
+        metricBlock.appendChild(metricRow);
+        metricBlock.appendChild(barWrapper);
+
+        // Apatinės eilutės – statistika
+        const row1 = document.createElement("div");
+        row1.className = "card-stats-row";
+        row1.innerHTML =
+          `<div>Už: <b>${m.uz.toLocaleString("lt-LT")}</b></div>` +
+          `<div>Prieš: <b>${m.pries.toLocaleString("lt-LT")}</b></div>` +
+          `<div>Susilaikė: <b>${m.susilaike.toLocaleString("lt-LT")}</b></div>`;
+
+        const row2 = document.createElement("div");
+        row2.className = "card-stats-row";
+        const papildomi = m.uzA + m.uzB;
+        row2.innerHTML =
+          `<div>Nedalyvavo: <b>${m.nedalyvavo.toLocaleString("lt-LT")}</b></div>` +
+          `<div>Registravosi: <b>${m.registravosi.toLocaleString("lt-LT")}</b></div>` +
+          `<div>Papildomi (A+B): <b>${papildomi.toLocaleString("lt-LT")}</b></div>`;
+
+        card.appendChild(header);
+        card.appendChild(metricBlock);
+        card.appendChild(row1);
+        card.appendChild(row2);
+
+        cardsContainer.appendChild(card);
+      });
+    }
+
+    // ---- Event'ai ----
+    partyFilterSelect.addEventListener("change", () => {
+      currentPartyFilter = partyFilterSelect.value || "ALL";
+      renderCards();
+    });
+
+    metricSelect.addEventListener("change", () => {
+      currentMetricKey = metricSelect.value;
+      renderCards();
+    });
+
+    sortDirectionSelect.addEventListener("change", () => {
+      currentSortDirection = sortDirectionSelect.value;
+      renderCards();
+    });
+
+    searchInput.addEventListener("input", () => {
+      currentSearchText = searchInput.value || "";
+      renderCards();
+    });
+
+    // ---- Inicijavimas ----
+    (async function init() {
+      try {
+        await Promise.all([
+          loadStats(),
+          loadParties()
+        ]);
+
+        augmentMembersWithParties();
+        buildPartyFilterOptions();
+        buildMetricSelectOptions();
+
+        statusEl.textContent = "Duomenys įkelti. Galite filtruoti ir analizuoti Seimo narių balsavimus.";
+        errorEl.style.display = "none";
+
+        // numatytasis rodiklis – dalyvavimo procentas
+        currentMetricKey = "dalyvavimo_proc";
+        metricSelect.value = currentMetricKey;
+
+        renderCards();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "";
+        errorEl.textContent = err.message;
+        errorEl.style.display = "block";
+      }
+    })();
+  </script>
+</body>
+</html>
